@@ -5,13 +5,12 @@ import Data.WAVE
 import System.Process
 import System.Random
 import Pitches
-import Synths
+import Voices
+import VoiceWaves
 
-
-data Note = Note { pitch :: (Maybe Pitch), timbre :: (Maybe Synth), duration :: (Maybe Float) } deriving (Show)
 
 type Pattern = [Note]
-
+data Note = Note { pitch :: (Maybe Pitch), voice :: (Maybe Voice), duration :: (Maybe Float) } deriving (Show)
 
 riff0 = concat $ replicate 4  $ map (applyEnvelope env1) $ map (\pitch -> genWobbleWave pitch 0.25) $  (map transpose [0, 5, 7, 10, 0, 5, 7, 12]) <*> [a3]
 riff1 = concat $ replicate 4  $ map (applyEnvelope env1) $ map (\pitch -> genWobbleWave pitch 0.125) $  (map transpose [0, 5, 7, 10, 0, 5, 7, 12]) <*> [a3]

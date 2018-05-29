@@ -5,7 +5,7 @@ import Patterns
 import Pitches
 import System.Process
 import System.Random
-import Synths
+import Voices
 
 
 main :: IO ()

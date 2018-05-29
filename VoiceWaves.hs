@@ -1,4 +1,4 @@
-module Synths where
+module VoiceWaves where
 import Data.Int
 import Data.WAVE
 import System.Process
@@ -7,23 +7,20 @@ import Pitches
 
 
 -- type Effect = WaveCycle -> WaveCycle
-type SynthWave = Double -> Float -> [Double]
-type SynthWaveFormCycleGen = Pitch -> [Double -> Double] -> WaveCycle
-type SynthWaveFormGen = WaveCycle -> Float -> SynthWave
-data Synth = Synth { synthName :: String, waveGen :: SynthWave }
-instance Show Synth where
-    show (Synth name wavegen)  = show name
+type VoiceWave = Double -> Float -> [Double]
+type VoiceWaveFormCycleGen = Pitch -> [Double -> Double] -> WaveCycle
+type VoiceWaveFormGen = WaveCycle -> Float -> VoiceWave
 type WaveCycle = [Double]
 
 sampleRate = 44100
 bitrate = 32
 
-genWaveFormCycle :: SynthWaveFormCycleGen
+genWaveFormCycle :: VoiceWaveFormCycleGen
 genWaveFormCycle p fs = samples 
     where 
         samples = fs <*> map (* (2 * p * pi / (fromIntegral sampleRate))) [0.0 .. (fromIntegral sampleRate ) / p]
 
--- genWaveForm :: SynthWaveFormGen
+-- genWaveForm :: VoiceWaveFormGen
 genWaveForm wavecycle duration = take n $ concat $ repeat wavecycle
     where
         n = round (duration * (fromIntegral sampleRate))
@@ -34,21 +31,25 @@ genWaveFile xs = WAVE header samples
         header = WAVEHeader 1 sampleRate bitrate (Just $ length $ concat xs)
         samples = xs >>= return . map doubleToSample 
 
+-- silence / rest
+genSilenceWaveCycle p = genWaveFormCycle p [\x -> 0]
+genSilenceWave :: VoiceWave
+genSilenceWave p d = genWaveForm (genSilenceWaveCycle p) d
+
+-- Some sineWave related voices
 genSineWaveCycle p = genWaveFormCycle p [\x -> 0.25 * sin(x)]
 
-genSineWave :: SynthWave
+genSineWave :: VoiceWave
 genSineWave p d = genWaveForm (genSineWaveCycle p) d
 
 genOrganWaveCycle p = genWaveFormCycle p [\x -> 0.5 * (sin(x) + 0.5 * sin(2*x) + 0.25 * sin(4*x) + 0.125 * sin(8*x))]
 
-genOrganWave :: SynthWave
+genOrganWave :: VoiceWave
 genOrganWave p d  = genWaveForm (genOrganWaveCycle p) d
 
 wobbleFuncs = map (\x y -> 0.5 * sin (x * y) ) [1.0, 1.1 .. 3]
-genWobbleWave :: SynthWave 
+genWobbleWave :: VoiceWave 
 genWobbleWave p d = genWaveForm (genWaveFormCycle p (wobbleFuncs ++ (reverse wobbleFuncs))) d
-
-wobbleWave = genWaveFile $ concat  $ replicate 4  [ genWobbleWave 55 3.0 , genWobbleWave 97.99886 1.0]
 
 -- Some generalised square waves, with variable pulse width
 
@@ -60,14 +61,12 @@ sqfs = map ( squareFunc ) [0.10, 0.11 .. 0.90]
 
 genPWSquareWaveCycle p = genWaveFormCycle p sqfs
 
-genPWSquareWave :: SynthWave
+genPWSquareWave :: VoiceWave
 genPWSquareWave p d = genWaveForm (genPWSquareWaveCycle p) d 
 
 genSquareWaveCycle p = genWaveFormCycle p [squareFunc 0.4]
-
-genSquareWave :: SynthWave
+genSquareWave :: VoiceWave
 genSquareWave p d = genWaveForm (genSquareWaveCycle p) d 
-
 
 -- Some generalised saw tooth waves
 --
@@ -89,11 +88,13 @@ genSaw2Wave p d = genWaveForm (genSaw2WaveCycle p) d
 genSaw3WaveCycle p = genWaveFormCycle p saws
 genSaw3Wave p d = genWaveForm (genSaw3WaveCycle p) d 
 
+
 -- Some attempts to generate bursts of white noise.
 --
 genRandomCycle p = take (length [0.0 .. (fromIntegral sampleRate) / p]) $ randomRs (-0.5 :: Double, 0.5 :: Double) (mkStdGen 42)
-genMetalNoise :: SynthWave
+genMetalNoise :: VoiceWave
 genMetalNoise p d  = genWaveForm (genRandomCycle p) d 
+
 
 genWhiteNoise d =  take n $ randomRs (-0.5 :: Double, 0.5 :: Double) $ mkStdGen 42
     where n = round (d * (fromIntegral sampleRate))
@@ -101,7 +102,7 @@ genWhiteNoise d =  take n $ randomRs (-0.5 :: Double, 0.5 :: Double) $ mkStdGen 
 -- Simple Karplus Strong Algorithm
 -- http://crypto.stanford.edu/~blynn/sound/karplusstrong.html
 ks xs = map (* 0.5) $ zipWith (+) xs (0:xs)
-genPluckWave :: SynthWave
+genPluckWave :: VoiceWave
 genPluckWave p d = take n $ concat $ iterate ks $ randomDoubles p
     where 
         c = length [0.0 .. (fromIntegral sampleRate) / p]
@@ -117,7 +118,7 @@ ksd xs = map (* 0.5) $ zipWith f xs (0:xs)
              | otherwise = 0
              -- | otherwise = -(x + y)
 
-genSn :: SynthWave
+genSn :: VoiceWave
 genSn p d  = take n $ concat $ iterate ksd $ randomDoubles p
     where 
         c = length [0.0 .. (fromIntegral sampleRate) / p]
@@ -139,11 +140,10 @@ diodeFilter' d (w:ws)
 
 
 -- Apply some distortion effects to waves
-genDistSaw :: SynthWave
+genDistSaw :: VoiceWave
 genDistSaw p d  = diodeFilter 0.3 $ genSaw2Wave p d
-genDistOrgan :: SynthWave
+genDistOrgan :: VoiceWave
 genDistOrgan p d  = diodeFilter 0.20 $ genOrganWave p d
-
 
 genEnvelope a s r = attack ++ sustain ++ release
     where
@@ -169,9 +169,9 @@ mix wave1 wave2
 -- Generate Chords (it's like the dual of building arpeggios ? )
 chord wave ps d = foldr mix [0] $ map (\p -> wave p d) ps 
 
--- generate some minor chord stab SynthWaves
-genMinorSquare :: SynthWave
+-- generate some minor chord stab VoiceWaves
+genMinorSquare :: VoiceWave
 genMinorSquare p d  = chord genSquareWave ((map transpose [0, 3, 7]) <*> [p]) d
-genMinorSaw2 :: SynthWave
+genMinorSaw2 :: VoiceWave
 genMinorSaw2 p d  = chord genSaw2Wave ((map transpose [0, 3, 7]) <*> [p]) d
 
