@@ -8,6 +8,8 @@ import VoiceWaves
 data Voice = Voice { voiceName :: String, waveGen :: VoiceWave }
 instance Show Voice where
     show (Voice name wavegen)  = show name
+instance (Eq) Voice where
+    (==) (Voice n0 w0) (Voice n1 w1) = n0 == n1
 
 silence :: Voice
 silence = Voice { voiceName = "silence", waveGen = genSilenceWave } 
