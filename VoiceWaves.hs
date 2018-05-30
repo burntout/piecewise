@@ -32,7 +32,7 @@ genWaveFile xs = WAVE header samples
         samples = xs >>= return . map doubleToSample 
 
 -- silence / rest
-genSilenceWaveCycle p = genWaveFormCycle p [\x -> 0]
+genSilenceWaveCycle p = genWaveFormCycle 1 [\x -> 0]
 genSilenceWave :: VoiceWave
 genSilenceWave p d = genWaveForm (genSilenceWaveCycle p) d
 

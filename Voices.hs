@@ -1,8 +1,4 @@
 module Voices where
-import Data.Int
-import Data.WAVE
-import System.Process
-import System.Random
 import VoiceWaves
 
 data Voice = Voice { voiceName :: String, waveGen :: VoiceWave }
