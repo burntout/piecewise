@@ -1,5 +1,6 @@
 module Notes where
 
+import Envelopes
 import qualified Pitches as P
 import Voices
 import Data.WAVE
@@ -9,37 +10,41 @@ import System.Process
 
 type Pattern = [Note]
 type Pitch = Double
-data Note = Note { pitch :: (Maybe Pitch), voice :: (Maybe Voice), duration :: (Maybe Float) } deriving (Show)
+data Note = Note { pitch :: (Maybe Pitch), voice :: (Maybe Voice), duration :: (Maybe Float), envelope :: (Maybe Envelope) } deriving (Show)
 
 sampleRate = 44100
 bitrate = 32
 
-rest = Note { pitch = (Just 1), voice = (Just silence), duration = Nothing } 
-a1 = Note { pitch = (Just P.a1), voice = Nothing, duration = Nothing }
-a2 = Note { pitch = (Just P.a2), voice = Nothing, duration = Nothing }
-a3 = Note { pitch = (Just P.a3), voice = Nothing, duration = Nothing }
-a4 = Note { pitch = (Just P.a4), voice = Nothing, duration = Nothing }
-
-af3 = Note { pitch = (Just P.af3), voice = Nothing, duration = Nothing }
-g3 = Note { pitch = (Just P.g3), voice = Nothing, duration = Nothing }
-f3 = Note { pitch = (Just P.f3), voice = Nothing, duration = Nothing }
+rest = Note { pitch = (Just 1), voice = (Just silence), duration = Nothing, envelope = Just constEnv1 } 
+a1 = Note { pitch = (Just P.a1), voice = Nothing, duration = Nothing, envelope = Just constEnv1 }
+a2 = Note { pitch = (Just P.a2), voice = Nothing, duration = Nothing, envelope = Just constEnv1 }
+a3 = Note { pitch = (Just P.a3), voice = Nothing, duration = Nothing, envelope = Just constEnv1 }
+a4 = Note { pitch = (Just P.a4), voice = Nothing, duration = Nothing, envelope = Just constEnv1 }
 
 noteTranspose :: Double -> Note -> Note
-noteTranspose i n = Note {pitch = p, voice = (voice n), duration = (duration n) }
+noteTranspose i n = Note {pitch = p, voice = (voice n), duration = (duration n), envelope = (envelope n) }
     where 
         p = P.transpose i <$> pitch n
         -- p = pitch n >>= return . P.transpose i
 
-setVoice v n = Note { pitch = (pitch n), voice = (Just v), duration = (duration n) }
-setDuration d n =  Note { pitch = (pitch n), voice = (voice n), duration = Just d } 
+setVoice v n = Note { pitch = (pitch n), voice = (Just v), duration = (duration n), envelope = (envelope n) }
+setDuration d n =  Note { pitch = (pitch n), voice = (voice n), duration = Just d, envelope = (envelope n) } 
+setEnvelope e n = Note { pitch = (pitch n), voice = (voice n), duration = (duration n), envelope = Just e } 
 
 arp1arp = map noteTranspose $  [0, 0, 7, 10, 0, 0, 0, -2] ++ [0, -2, 7, 9, 0, 0, -2, -4]
-arp0 = arp1arp <*> [a1, a1, a2, a2]
-arp1 = arp1arp <*> (arp1arp <*> [a1, a1, a2, a2])
+arp0 = arp1arp <*> [a2, a2, a3, a3]
+arp1 = arp1arp <*> arp0
 
 voiceMap = map setVoice [saw1Wave, saw2Wave, saw3Wave, silence, squareWave, squarePWWave, silence]
-p0 = map (setDuration 0.125) (zipWith ($) (concat $ repeat voiceMap) arp0)
-p1 = map (setDuration 0.125) (zipWith ($) (concat $ repeat voiceMap) arp1)
+
+envMap = map setEnvelope [bwap1Env, bwap3Env, constEnv1]
+
+n0 = map (setDuration 0.125) (zipWith ($) (concat $ repeat voiceMap) arp0)
+n1 = map (setDuration 0.125) (zipWith ($) (concat $ repeat voiceMap) arp1)
+
+p0 = zipWith ($) (concat $ repeat envMap) n0
+p1 = zipWith ($) (concat $ repeat envMap) n1
+
 
 outPattern = [p0, p1]
 
@@ -48,7 +53,8 @@ noteToDoubles n =
     do { d <- duration n ;
         do { p <- pitch n ;
             do { v <- voice n ;
-                return $ (waveGen v) p d }}}
+                do { e <- envelope n;
+                return $ applyEnvelope (envl e) ((waveGen v) p d) }}}}
 
 noteToSample :: Note -> Maybe [Int32]
 noteToSample n = map doubleToSample <$> (noteToDoubles n)

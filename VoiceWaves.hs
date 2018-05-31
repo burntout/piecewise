@@ -145,22 +145,6 @@ genDistSaw p d  = diodeFilter 0.3 $ genSaw2Wave p d
 genDistOrgan :: VoiceWave
 genDistOrgan p d  = diodeFilter 0.20 $ genOrganWave p d
 
-genEnvelope a s r = attack ++ sustain ++ release
-    where
-        attack = map (\x -> x/a) [0 .. a]
-        sustain = take s $ repeat 1.0
-        release = map (\x -> x/r) $ reverse [0 .. r]
-
-genFadeIn t = map (\x -> x/t) [0 .. t]
-applyEnvelope env wave = zipWith (*) wave $ env ++ (repeat 0)
-applyFadeIn env wave = zipWith (*) wave $ env ++ (repeat 1) 
-
-env1 = genEnvelope 4000 1000 4000
-env2 = genEnvelope 1000 10 1000
-env3 = genEnvelope 2200 500 2000
-env4 = genEnvelope 100 3000 2000
-fadeIn1 = genFadeIn 200000
-
 -- Mixing waves ? 
 mix wave1 wave2 
     | (length wave1) >= (length wave2) = zipWith (+) wave1 $ concat $ repeat wave2
@@ -174,4 +158,3 @@ genMinorSquare :: VoiceWave
 genMinorSquare p d  = chord genSquareWave ((map transpose [0, 3, 7]) <*> [p]) d
 genMinorSaw2 :: VoiceWave
 genMinorSaw2 p d  = chord genSaw2Wave ((map transpose [0, 3, 7]) <*> [p]) d
-
