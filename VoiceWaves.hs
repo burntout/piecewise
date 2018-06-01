@@ -7,7 +7,7 @@ import Pitches
 
 
 -- type Effect = WaveCycle -> WaveCycle
-type VoiceWave = Double -> Float -> [Double]
+type VoiceWave = Double -> Double -> [Double]
 type VoiceWaveFormCycleGen = Pitch -> [Double -> Double] -> WaveCycle
 type VoiceWaveFormGen = WaveCycle -> Float -> VoiceWave
 type WaveCycle = [Double]

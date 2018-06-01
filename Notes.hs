@@ -1,5 +1,6 @@
 module Notes where
 
+import qualified Durations as D
 import Envelopes
 import qualified Pitches as P
 import Voices
@@ -10,7 +11,7 @@ import System.Process
 
 type Pattern = [Note]
 type Pitch = Double
-data Note = Note { pitch :: (Maybe Pitch), voice :: (Maybe Voice), duration :: (Maybe Float), envelope :: (Maybe Envelope) } deriving (Show)
+data Note = Note { pitch :: (Maybe Pitch), voice :: (Maybe Voice), duration :: (Maybe Double), envelope :: (Maybe Envelope) } deriving (Show)
 
 sampleRate = 44100
 bitrate = 32
@@ -32,18 +33,27 @@ setDuration d n =  Note { pitch = (pitch n), voice = (voice n), duration = Just 
 setEnvelope e n = Note { pitch = (pitch n), voice = (voice n), duration = (duration n), envelope = Just e } 
 
 arp1arp = map noteTranspose $  [0, 0, 7, 10, 0, 0, 0, -2] ++ [0, -2, 7, 9, 0, 0, -2, -4]
+-- arp1arp = map noteTranspose $  [0, 0, 10, 8, 5, -4, -2 , 1]
 arp0 = arp1arp <*> [a2, a2, a3, a3]
 arp1 = arp1arp <*> arp0
 
-voiceMap = map setVoice [saw1Wave, saw2Wave, saw3Wave, silence, squareWave, squarePWWave, silence]
+-- voiceMap = map setVoice [saw1Wave, saw2Wave, saw3Wave, silence, squareWave, squarePWWave, silence]
+-- voiceMap = map setVoice [organWave, sineWave, organWave, silence, sineWave, distOrgan, silence]
+voiceMap = map setVoice [organWave, distOrgan, silence, distOrgan, organWave]
 
-envMap = map setEnvelope [bwap1Env, bwap3Env, constEnv1]
+envMap = map setEnvelope [bwap3Env, constEnv1, constEnv2, short1Env]
 
-n0 = map (setDuration 0.125) (zipWith ($) (concat $ repeat voiceMap) arp0)
-n1 = map (setDuration 0.125) (zipWith ($) (concat $ repeat voiceMap) arp1)
+-- rhythmMap = map setDuration [D.n16, D.n16, D.n8]
+rhythmMap = map setDuration [D.n16, D.n16, D.n8, D.n16, D.n16]
 
-p0 = zipWith ($) (concat $ repeat envMap) n0
-p1 = zipWith ($) (concat $ repeat envMap) n1
+v0 = zipWith ($) (concat $ repeat voiceMap) arp0
+v1 = zipWith ($) (concat $ repeat voiceMap) arp1
+
+d0 = zipWith ($) (concat $ repeat rhythmMap) v0
+d1 = zipWith ($) (concat $ repeat rhythmMap) v1
+
+p0 = zipWith ($) (concat $ repeat envMap) d0
+p1 = zipWith ($) (concat $ repeat envMap) d1
 
 
 outPattern = [p0, p1]
