@@ -16,11 +16,12 @@ data Note = Note { pitch :: (Maybe Pitch), voice :: (Maybe Voice), duration :: (
 sampleRate = 44100
 bitrate = 32
 
-rest = Note { pitch = (Just 1), voice = (Just silence), duration = Nothing, envelope = Just constEnv1 } 
-a1 = Note { pitch = (Just P.a1), voice = Nothing, duration = Nothing, envelope = Just constEnv1 }
-a2 = Note { pitch = (Just P.a2), voice = Nothing, duration = Nothing, envelope = Just constEnv1 }
-a3 = Note { pitch = (Just P.a3), voice = Nothing, duration = Nothing, envelope = Just constEnv1 }
-a4 = Note { pitch = (Just P.a4), voice = Nothing, duration = Nothing, envelope = Just constEnv1 }
+rest = Note { pitch = (Just 1), voice = (Just silence), duration = Nothing, envelope = Nothing } 
+a1 = Note { pitch = (Just P.a1), voice = Nothing, duration = Nothing, envelope = Nothing }
+f1 = Note { pitch = (Just P.f1), voice = Nothing, duration = Nothing, envelope = Nothing }
+a2 = Note { pitch = (Just P.a2), voice = Nothing, duration = Nothing, envelope = Nothing }
+a3 = Note { pitch = (Just P.a3), voice = Nothing, duration = Nothing, envelope = Nothing }
+a4 = Note { pitch = (Just P.a4), voice = Nothing, duration = Nothing, envelope = Nothing }
 
 noteTranspose :: Double -> Note -> Note
 noteTranspose i n = Note {pitch = p, voice = (voice n), duration = (duration n), envelope = (envelope n) }
@@ -32,31 +33,47 @@ setVoice v n = Note { pitch = (pitch n), voice = (Just v), duration = (duration 
 setDuration d n =  Note { pitch = (pitch n), voice = (voice n), duration = Just d, envelope = (envelope n) } 
 setEnvelope e n = Note { pitch = (pitch n), voice = (voice n), duration = (duration n), envelope = Just e } 
 
-arp1arp = map noteTranspose $  [0, 0, 7, 10, 0, 0, 0, -2] ++ [0, -2, 7, 9, 0, 0, -2, -4]
--- arp1arp = map noteTranspose $  [0, 0, 10, 8, 5, -4, -2 , 1]
-arp0 = arp1arp <*> [a2, a2, a3, a3]
-arp1 = arp1arp <*> arp0
+-- arp1arp = map noteTranspose $  [0, 0, 7, 10, 0, 0, 0, -2] ++ [0, -2, 7, 9, 0, 0, -2, -4]
+-- arp0 = arp1arp <*> [a2, a2, a3, a3]
+-- arp1 = arp1arp <*> arp0
+
+foob = concat $ replicate 2 [f1, a4]
+foobVoice = map setVoice [organWave, sn]
+foobEnv = map setEnvelope [ bwap3Env, constEnv1]
+foobDur = map setDuration [D.n4, D.n4]
+
+fooba = concat $ replicate 8 [f1, a4, a4, a4, f1, a2, a3]
+foobaVoice = map setVoice [ organWave, sn, sn, sn, sn, sn, sn]
+foobaDur = map setDuration [ D.n4, D.n16, D.n16 ,D.n8, D.n4, D.n8d, D.n16]
+
+v0 = zipWith ($) (concat $ repeat foobVoice) $ foob
+d0 = zipWith ($) (concat $ repeat foobDur) v0
+p0 = zipWith ($) (concat $ repeat foobEnv) d0
+
+v1 = zipWith ($) (concat $ repeat foobaVoice) $ fooba
+d1 = zipWith ($) (concat $ repeat foobaDur) v1
+p1 = zipWith ($) (concat $ repeat foobEnv) d1
+
 
 -- voiceMap = map setVoice [saw1Wave, saw2Wave, saw3Wave, silence, squareWave, squarePWWave, silence]
 -- voiceMap = map setVoice [organWave, sineWave, organWave, silence, sineWave, distOrgan, silence]
-voiceMap = map setVoice [organWave, distOrgan, silence, distOrgan, organWave]
+-- voiceMap = map setVoice [organWave, distOrgan, silence, distOrgan, organWave]
 
-envMap = map setEnvelope [bwap3Env, constEnv1, constEnv2, short1Env]
+-- envMap = map setEnvelope [bwap3Env, constEnv1, constEnv2, short1Env]
 
 -- rhythmMap = map setDuration [D.n16, D.n16, D.n8]
-rhythmMap = map setDuration [D.n16, D.n16, D.n8, D.n16, D.n16]
+--rhythmMap = map setDuration [D.n8, D.n16, D.n16, D.n8, D.n16, D.n16]
+--
+--v0 = zipWith ($) (concat $ repeat voiceMap) arp0
+--v1 = zipWith ($) (concat $ repeat voiceMap) arp1
+--
+--d1 = zipWith ($) (concat $ repeat rhythmMap) v1
+--
+--p0 = zipWith ($) (concat $ repeat envMap) d0
+--p1 = zipWith ($) (concat $ repeat envMap) d1
 
-v0 = zipWith ($) (concat $ repeat voiceMap) arp0
-v1 = zipWith ($) (concat $ repeat voiceMap) arp1
 
-d0 = zipWith ($) (concat $ repeat rhythmMap) v0
-d1 = zipWith ($) (concat $ repeat rhythmMap) v1
-
-p0 = zipWith ($) (concat $ repeat envMap) d0
-p1 = zipWith ($) (concat $ repeat envMap) d1
-
-
-outPattern = [p0, p1]
+outPattern = [p0, p0, p1, p0, p0]
 
 noteToDoubles :: Note -> Maybe [Double]
 noteToDoubles n =  
