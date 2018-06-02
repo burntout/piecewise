@@ -12,8 +12,8 @@ type VoiceWaveFormCycleGen = Pitch -> [Double -> Double] -> WaveCycle
 type VoiceWaveFormGen = WaveCycle -> Float -> VoiceWave
 type WaveCycle = [Double]
 
-sampleRate = 44100
-bitrate = 32
+sampleRate = 44100::Int
+bitrate = 32::Int
 
 genWaveFormCycle :: VoiceWaveFormCycleGen
 genWaveFormCycle p fs = samples 
@@ -25,11 +25,11 @@ genWaveForm wavecycle duration = take n $ concat $ repeat wavecycle
     where
         n = round (duration * (fromIntegral sampleRate))
 
-genWaveFile :: [[Double]] -> WAVE
-genWaveFile xs = WAVE header samples 
-    where 
-        header = WAVEHeader 1 sampleRate bitrate (Just $ length $ concat xs)
-        samples = xs >>= return . map doubleToSample 
+-- genWaveFile :: [[Double]] -> WAVE
+-- genWaveFile xs = WAVE header samples 
+--     where 
+--         header = WAVEHeader 1 sampleRate bitrate (Just $ length $ concat xs)
+--         samples = xs >>= return . map doubleToSample 
 
 -- silence / rest
 genSilenceWaveCycle p = genWaveFormCycle 1 [\x -> 0]
@@ -144,6 +144,7 @@ genDistSaw :: VoiceWave
 genDistSaw p d  = diodeFilter 0.3 $ genSaw2Wave p d
 genDistOrgan :: VoiceWave
 genDistOrgan p d  = diodeFilter 0.20 $ genOrganWave p d
+genDistSn p d = diodeFilter 0.20 $ genSn p d
 
 -- Mixing waves ? 
 mix wave1 wave2 

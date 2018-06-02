@@ -31,6 +31,8 @@ pluckWave :: Voice
 pluckWave = Voice { voiceName = "pluckWave", waveGen = genPluckWave }
 sn :: Voice
 sn = Voice { voiceName = "sn", waveGen = genSn }
+distSn :: Voice
+distSn = Voice { voiceName = "distSn", waveGen = genDistSn }
 distSaw :: Voice
 distSaw = Voice { voiceName = "distSaw", waveGen = genDistSaw }
 distOrgan :: Voice
