@@ -35,20 +35,41 @@ setVoice v n = Note { pitch = (pitch n), voice = (Just v), duration = (duration 
 setDuration d n =  Note { pitch = (pitch n), voice = (voice n), duration = Just d, envelope = (envelope n) } 
 setEnvelope e n = Note { pitch = (pitch n), voice = (voice n), duration = (duration n), envelope = Just e } 
 
-note1Map = map noteTranspose [0, 0, 10]
-notes1  = note1Map <*> [a1, e1]
-durMap1 = map setDuration [D.n4d, D.n4d, D.n4]
+arp1arp = map noteTranspose $  [0, 0, 7, 10, 0, 0, 0, -2] ++ [0, -2, 7, 9, 0, 0, -2, -4]
+arp0 = arp1arp <*> [a2, a2, a3, a3]
+arp1 = arp1arp <*> arp0
 
-d1 = zipWith ($) (concat $ repeat durMap1) notes1
-v1 = map (setVoice saw3Wave) d1
-p1 = concat $ replicate 8 $ map (setEnvelope bwap1Env) v1
+foob = concat $ replicate 2 [e1, a4]
+foobVoice = map setVoice [wobbleWave, sn]
+foobEnv = map setEnvelope [ bwap3Env, constEnv1]
+foobDur = map setDuration [D.n4, D.n4]
+
+fooba = concat $ replicate 8 [a1, a4, a4, a4, f1, a2, a3]
+foobaVoice = map setVoice [ organWave, sn, sn, distSn, distSn, distSn, distSn]
+foobaDur = map setDuration [ D.n4, D.n16, D.n16 ,D.n8, D.n4, D.n8d, D.n16]
+
+v0 = zipWith ($) (concat $ repeat foobVoice) $ foob
+d0 = zipWith ($) (concat $ repeat foobDur) v0
+p0 = zipWith ($) (concat $ repeat foobEnv) d0
+
+v1 = zipWith ($) (concat $ repeat foobaVoice) $ fooba
+d1 = zipWith ($) (concat $ repeat foobaDur) v1
+p1 = zipWith ($) (concat $ repeat foobEnv) d1
 
 
-notes2 = [a4,a3,a2,a1]
-durMap2 = map setDuration $ [D.n16, D.n16 ,D.n8] ++ (concat  $ replicate 8 [D.n16])
-d2 = zipWith ($) durMap2 (concat $ repeat notes2)
-v2 = map (setVoice distSn) d2
-p2 = concat $ replicate  16 $  map (setEnvelope constEnv1) v2
+voiceMap = map setVoice [saw1Wave, saw2Wave, saw3Wave, silence, squareWave, squarePWWave, silence]
+envMap = map setEnvelope [bwap3Env, constEnv1, constEnv2, short1Env]
+rhythmMap = map setDuration [D.n8, D.n16, D.n16, D.n8, D.n16, D.n16]
+
+v2 = zipWith ($) (concat $ repeat voiceMap) arp0
+v3 = zipWith ($) (concat $ repeat voiceMap) arp1
+d3 = zipWith ($) (concat $ repeat rhythmMap) v3
+
+p2 = zipWith ($) (concat $ repeat envMap) d3
+p3 = zipWith ($) (concat $ repeat envMap) d3
+
+
+outPattern = [p0, p0, p1, p0, p0]
 
 noteToDoubles :: Note -> Maybe [Double]
 noteToDoubles n =  
@@ -102,7 +123,7 @@ main :: IO ()
 main =
     do
         -- let outWav = fromJust $ render outPattern
-        let outWav = genWaveFile [fromJust $ stack [p1, p2]]
+        let outWav = genWaveFile [fromJust $ stack [p3, p1]]
         putWAVEFile "out.wav" outWav 
         pid <- runCommand "aplay -q out.wav"
         return ()
