@@ -21,10 +21,11 @@ applyEnvelope env wave = zipWith (*) wave $ env ++ (repeat 0)
 -- applyFadeIn env wave = zipWith (*) wave $ env ++ (repeat 1) 
 
 -- Some constant scalings
-constEnv0 = Envelope { name = "constEnv1", envl = repeat 0.0 }
+constEnv0 = Envelope { name = "constEnv0", envl = repeat 0.0 }
 constEnv1 = Envelope { name = "constEnv1", envl = repeat 1.0 }
 constEnv2 = Envelope { name = "constEnv2", envl = repeat 0.5 }
 constEnv3 = Envelope { name = "constEnv3", envl = repeat 0.3 }
+constEnv4 = Envelope { name = "constEnv4", envl = repeat 0.3 }
 
 -- Some envelopes
 bwap1Env = Envelope { name = "bwap1Env", envl = genEnvelope 4000 1000 4000 }

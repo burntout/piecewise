@@ -44,11 +44,26 @@ v1 = map (setVoice saw3Wave) d1
 p1 = concat $ replicate 8 $ map (setEnvelope bwap1Env) v1
 
 
-notes2 = [a4,a3,a2,a1]
-durMap2 = map setDuration $ [D.n16, D.n16 ,D.n8] ++ (concat  $ replicate 8 [D.n16])
+notes2 = [a4,a3,a2,a1,a2,a3,a4]
+durMap2 = map setDuration $ [D.n16, D.n16 ,D.n8] ++ (concat  $ replicate 4 [D.n16])
+-- durMap2 = map setDuration $ (concat  $ replicate 8 [D.n16])
 d2 = zipWith ($) durMap2 (concat $ repeat notes2)
 v2 = map (setVoice distSn) d2
-p2 = concat $ replicate  16 $  map (setEnvelope constEnv1) v2
+e2 = map setEnvelope [constEnv2, constEnv3, constEnv2]
+-- p2 = concat $ replicate  16 $  map (setEnvelope constEnv1) v2
+p2 = concat $ replicate  16 $  zipWith ($) (concat $ repeat e2) v2
+
+
+note3Map = map noteTranspose [0,0,0,5,5,5]
+notes3 = note3Map <*> [a4]
+durMap3 = map setDuration $ [D.n16, D.n16, D.n8]
+voiceMap3 = map setVoice $ (replicate 4 silence ) ++ (replicate 3 minorSquareStab) ++ (replicate 4 silence)
+e3 = map setEnvelope [short1Env, bwap2Env, constEnv0, short1Env]
+
+d3 = zipWith ($) (concat $ repeat durMap3) notes3
+v3 = (voiceMap3) <*> d3
+p3 = zipWith ($) (concat $ repeat e3) v3
+
 
 noteToDoubles :: Note -> Maybe [Double]
 noteToDoubles n =  
@@ -80,13 +95,11 @@ stack' :: Maybe [Double] -> Pattern -> Maybe [Double]
 stack' d p = 
     do { ds0 <- d;
         do { ds1 <- patternToDoubles p;
-            return $ normalize $ mix ds0 (concat ds1) }} 
+            return $ mix ds0 (concat ds1) }} 
 
 stack :: [Pattern] -> Maybe [Double]
-stack ps = foldl stack' (Just [0.0]) ps
+stack ps = (foldl stack' (Just [0.0]) ps) >>= return . normalize 
 
--- Take a list of patterns, chain them together, return a Maybe [Double] that we can rener
---
 chain :: [Pattern] -> Maybe [Double]
 chain ps = 
     do { ds <- patternToDoubles $ concat ps;
@@ -102,7 +115,7 @@ main :: IO ()
 main =
     do
         -- let outWav = fromJust $ render outPattern
-        let outWav = genWaveFile [fromJust $ stack [p1, p2]]
+        let outWav = genWaveFile [fromJust $ stack [p1, p2], fromJust $ stack [p1, p2,p1, p3], fromJust $ stack [p1, p2]]
         putWAVEFile "out.wav" outWav 
-        pid <- runCommand "aplay -q out.wav"
+        -- pid <- runCommand "aplay -q out.wav"
         return ()
