@@ -54,8 +54,8 @@ genWobbleWave p d = genWaveForm (genWaveFormCycle p (wobbleFuncs ++ (reverse wob
 -- Some generalised square waves, with variable pulse width
 
 squareFunc pw x 
-    | x < 2 * pw * pi  = -0.5
-    | x >= 2 * pw * pi = 0.5
+    | x < 2 * pw * pi  = -0.3
+    | x >= 2 * pw * pi = 0.3
 
 sqfs = map ( squareFunc ) [0.10, 0.11 .. 0.90]
 

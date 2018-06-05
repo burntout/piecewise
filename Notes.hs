@@ -51,14 +51,15 @@ d2 = zipWith ($) durMap2 (concat $ repeat notes2)
 v2 = map (setVoice distSn) d2
 e2 = map setEnvelope [constEnv2, constEnv3, constEnv2]
 -- p2 = concat $ replicate  16 $  map (setEnvelope constEnv1) v2
-p2 = concat $ replicate  16 $  zipWith ($) (concat $ repeat e2) v2
-
-
-note3Map = map noteTranspose [0,0,0,5,5,5]
+p2 = concat $ replicate  8 $  zipWith ($) (concat $ repeat e2) v2
+p4 = p2 ++ p2 
+note3Map = map noteTranspose [0,0,0,5,5,5,-2,-3,-4,0,0,0]
 notes3 = note3Map <*> [a4]
 durMap3 = map setDuration $ [D.n16, D.n16, D.n8]
-voiceMap3 = map setVoice $ (replicate 4 silence ) ++ (replicate 3 minorSquareStab) ++ (replicate 4 silence)
-e3 = map setEnvelope [short1Env, bwap2Env, constEnv0, short1Env]
+voiceMap3 = map setVoice $ (replicate 2 silence ) ++ (replicate 4 minorSquareStab) ++ (replicate 2 silence)
+-- e3 = map setEnvelope [bwap2Env3, constEnv3, constEnv0, short1Env3, constEnv0]
+e3 = map setEnvelope [bwap2Env3, short1Env3, constEnv0]
+
 
 d3 = zipWith ($) (concat $ repeat durMap3) notes3
 v3 = (voiceMap3) <*> d3
@@ -86,6 +87,13 @@ genWaveFile xs = WAVE header samples
     where
         header = WAVEHeader 1 sampleRate bitrate (Just $ length $ concat xs)
         samples = xs >>= return . map doubleToSample
+
+
+hardFlange :: Int -> Maybe [Double] -> Maybe [Double]
+hardFlange n  xs =
+    do {  ds <- xs;
+        return $ normalize $ mix ds $ (replicate n 0) ++ (take ((length ds) - n) ds) }
+
 
 -- Take a list of patterns, mux them together, return a Maybe [Double] that we can render
 -- If they are different lengths repeat the shorter
@@ -115,7 +123,8 @@ main :: IO ()
 main =
     do
         -- let outWav = fromJust $ render outPattern
-        let outWav = genWaveFile [fromJust $ stack [p1, p2], fromJust $ stack [p1, p2,p1, p3], fromJust $ stack [p1, p2]]
+        let outWav = genWaveFile [fromJust $ stack [p1, p4], fromJust $ stack [p1, p4,p1, p3], fromJust $ hardFlange 1000 $ stack [p1, p4], fromJust $ hardFlange 750 $ stack [p3, p2], fromJust $ hardFlange 500 $ chain [p2]]
+
         putWAVEFile "out.wav" outWav 
         -- pid <- runCommand "aplay -q out.wav"
         return ()
